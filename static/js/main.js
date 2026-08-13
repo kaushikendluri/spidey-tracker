@@ -1157,11 +1157,13 @@ async function start() {
   await runBoot();
 
   // Map must be created after the shell is visible or Leaflet mis-measures it.
+  const city = activeCity();
   gmap.initMap('map-canvas', {
     onSelect: (id) => selectSighting(id),
+    center: city ? [city.latitude, city.longitude] : undefined,
+    zoom: city ? city.default_zoom : undefined,
   });
-  const city = activeCity();
-  if (city) gmap.fitCity(city);
+  gmap.invalidate();
 
   await Promise.all([loadSightings(), loadAnalytics(), loadNetwork(), loadSystem()]);
 
@@ -1190,8 +1192,31 @@ async function start() {
   );
 }
 
+/**
+ * A failure anywhere in startup used to abort every step after it, leaving a
+ * dashboard that looked loaded but was inert. Surface it instead: reveal the
+ * shell regardless, and say what broke.
+ */
+async function boot() {
+  try {
+    await start();
+  } catch (err) {
+    console.error('[startup] failed', err);
+    const bootScreen = document.getElementById('boot');
+    if (bootScreen) bootScreen.hidden = true;
+    const app = document.getElementById('app');
+    if (app) app.hidden = false;
+    alerts.initAlerts();
+    alerts.push({
+      title: 'STARTUP INCOMPLETE',
+      body: err && err.message ? err.message : String(err),
+      severity: 'critical',
+    });
+  }
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', start);
+  document.addEventListener('DOMContentLoaded', boot);
 } else {
-  start();
+  boot();
 }

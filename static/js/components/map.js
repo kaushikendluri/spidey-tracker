@@ -69,6 +69,12 @@ export function initMap(containerId, handlers = {}) {
     wheelPxPerZoomLevel: 110,
   });
 
+  // Leaflet throws "Set map center and zoom first" on getBounds/flyTo/addLayer
+  // until a view exists, so establish one immediately. The caller centres on
+  // the real city right after.
+  const start = handlers.center || [40.7549, -73.9840];
+  map.setView(start, handlers.zoom || 12);
+
   // Dedicated panes so z-order between layers is explicit and stable.
   panes.heat = map.createPane('heat');       panes.heat.style.zIndex = 350;
   panes.zone = map.createPane('zone');       panes.zone.style.zIndex = 380;
@@ -111,12 +117,16 @@ function setBaseLayer(mode) {
 // ---------------------------------------------------------------------------
 
 export function focus(lat, lon, zoom, { animate = true } = {}) {
-  if (!map) return;
+  if (!map || lat === undefined || lat === null) return;
   programmaticMove = true;
-  map.flyTo([lat, lon], zoom ?? map.getZoom(), {
-    animate: animate && !prefersReducedMotion(),
-    duration: 0.75,
-  });
+  const target = zoom ?? map.getZoom();
+  if (!map._loaded) map.setView([lat, lon], target);
+  else {
+    map.flyTo([lat, lon], target, {
+      animate: animate && !prefersReducedMotion(),
+      duration: 0.75,
+    });
+  }
   setTimeout(() => { programmaticMove = false; }, 900);
 }
 
@@ -126,7 +136,7 @@ export function fitCity(city) {
 }
 
 export function fitSightings(list) {
-  if (!map || !list || !list.length) return;
+  if (!map || !map._loaded || !list || !list.length) return;
   const bounds = L.latLngBounds(list.map((s) => [s.latitude, s.longitude]));
   programmaticMove = true;
   map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: !prefersReducedMotion() });
@@ -467,6 +477,7 @@ export function render() {
 }
 
 function doRender() {
+  if (!map || !map._loaded) return;   // no view yet — getBounds would throw
   const mode = state.mapMode;
   const all = visibleSightings();
 
