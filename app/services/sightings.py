@@ -300,10 +300,23 @@ def validate(payload, conn):
     }
 
 
+# Above this, two consecutive sightings cannot plausibly be the same subject
+# travelling between them, so no motion is inferred from the pair.
+MAX_PLAUSIBLE_KMH = 120.0
+
+
 def infer_motion(conn, data):
-    """Fill in direction/speed from the previous sighting when not supplied."""
+    """Fill in direction/speed from the previous sighting when not supplied.
+
+    Only when the pair is physically plausible. A report filed seconds after an
+    unrelated sighting across town implies hundreds of km/h; clamping that to a
+    ceiling would record a fabricated speed as though it were observed. Leaving
+    the fields null is the honest outcome, and the analyser already treats a
+    missing motion channel correctly.
+    """
     if data.get("direction") is not None and data.get("speed_kmh") is not None:
         return data
+
     prev = dbmod.query(
         conn,
         "SELECT latitude, longitude, ts FROM sightings WHERE city_id = ? AND ts < ? "
@@ -313,16 +326,23 @@ def infer_motion(conn, data):
     )
     if not prev:
         return data
+
     dist = geo.haversine_km(prev["latitude"], prev["longitude"],
                             data["latitude"], data["longitude"])
     dt_h = max(1e-4, (data["ts"] - prev["ts"]) / 3600.0)
-    if dist >= 0.04:
-        if data.get("direction") is None:
-            data["direction"] = round(geo.bearing_deg(
-                prev["latitude"], prev["longitude"],
-                data["latitude"], data["longitude"]), 1)
-        if data.get("speed_kmh") is None:
-            data["speed_kmh"] = round(min(140.0, dist / dt_h), 1)
+    if dist < 0.04:
+        return data                      # within GPS noise; bearing is meaningless
+
+    implied = dist / dt_h
+    if implied > MAX_PLAUSIBLE_KMH:
+        return data                      # unrelated subjects, infer nothing
+
+    if data.get("direction") is None:
+        data["direction"] = round(geo.bearing_deg(
+            prev["latitude"], prev["longitude"],
+            data["latitude"], data["longitude"]), 1)
+    if data.get("speed_kmh") is None:
+        data["speed_kmh"] = round(implied, 1)
     return data
 
 
