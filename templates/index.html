@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-version="{{ version }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SPIDEY TRACKER — Sighting Intelligence Network</title>
+<meta name="description" content="Fictional Spider-Man sighting intelligence console. All data is simulated.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#020B18">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Share+Tech+Mono&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pixel.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23020B18'/><path d='M7 2h2v2H7zM4 4h2v2H4zM10 4h2v2h-2zM2 7h12v2H2zM4 10h2v2H4zM10 10h2v2h-2zM7 12h2v2H7z' fill='%23FF3038'/></svg>">
+</head>
+<body>
+
+<!-- ===================================================================== -->
+<!-- BOOT SEQUENCE — replaced by the dashboard once initialisation reports -->
+<!-- ===================================================================== -->
+<div class="boot" id="boot" role="status" aria-live="polite">
+  <div class="boot__inner">
+    <div class="boot__logo">SPIDEY TRACKER</div>
+    <div class="boot__version">v{{ version }} &nbsp;//&nbsp; SIGHTING INTELLIGENCE NETWORK</div>
+    <div id="boot-lines"></div>
+    <div class="boot__ready" id="boot-ready" hidden>SYSTEM READY</div>
+    <div class="boot__skip">
+      <button class="btn btn--sm" id="boot-skip" type="button">SKIP &gt;&gt;</button>
+      <label class="check">
+        <input type="checkbox" id="boot-disable">
+        <span class="check__box" aria-hidden="true"></span>
+        <span>DON'T SHOW AGAIN</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================== -->
+<!-- APP SHELL                                                             -->
+<!-- ===================================================================== -->
+<div id="app" hidden>
+
+  <!-- ------------------------------ HEADER ---------------------------- -->
+  <header class="header area-header">
+    <div class="header__brand">
+      <svg class="header__spider" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+        <path d="M7 1h2v2H7zM4 3h2v2H4zM10 3h2v2h-2zM6 5h4v3H6zM1 6h4v2H1zM11 6h4v2h-4zM3 9h3v2H3zM10 9h3v2h-3zM6 8h4v3H6zM5 12h2v2H5zM9 12h2v2H9z"/>
+      </svg>
+      <div>
+        <div class="header__title">SPIDEY<em>&nbsp;TRACKER</em></div>
+      </div>
+      <span class="header__version px-xs">v{{ version }}</span>
+    </div>
+
+    <nav class="header__nav" aria-label="Main">
+      <button class="navbtn is-active" data-view="dashboard" type="button">DASHBOARD</button>
+      <button class="navbtn" data-view="feed" type="button">
+        FEED <span class="navbtn__count" id="nav-feed-count" hidden>0</span>
+      </button>
+      <button class="navbtn" data-view="prediction" type="button">PREDICT</button>
+      <button class="navbtn" data-view="cameras" type="button">CAMERAS</button>
+      <button class="navbtn" data-view="analytics" type="button">ANALYTICS</button>
+      <button class="navbtn" data-view="network" type="button">NETWORK</button>
+      <button class="navbtn" data-view="report" type="button">+ REPORT</button>
+    </nav>
+
+    <div class="header__search">
+      <span class="header__search-icon" aria-hidden="true">&#9906;</span>
+      <input class="input" id="search-input" type="search" autocomplete="off"
+             placeholder="SEARCH SIGHTINGS / CAMERAS / AREAS"
+             aria-label="Search sightings, cameras, areas and cities"
+             role="combobox" aria-expanded="false" aria-controls="search-results">
+      <div class="results" id="search-results" role="listbox" hidden></div>
+    </div>
+
+    <div class="header__status">
+      <select class="select btn--sm" id="city-select" aria-label="Active city"
+              style="width:auto;font-family:var(--font-pixel);font-size:var(--fs-pixel-xs);padding:4px 22px 4px 8px;"></select>
+      <div class="header__clock tabnum" id="clock" aria-label="Current time">--:--:--</div>
+      <div class="sysline" id="sys-indicator">
+        <span class="dot dot--pulse"></span><span id="sys-text">CONNECTING</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ------------------------------- MAP ------------------------------ -->
+  <section class="area-map" aria-label="Live sighting map">
+    <div class="map scanlines">
+      <div id="map-canvas"></div>
+      <div class="map__grade" aria-hidden="true"></div>
+      <div class="map__frame" aria-hidden="true"></div>
+
+      <!-- Mobile-only floating status capsule -->
+      <div class="mobile-status" id="mobile-status"></div>
+
+      <div class="map__ui map__ui--tl">
+        <div class="map__modes" role="group" aria-label="Map mode">
+          <button class="btn btn--sm btn--active" data-mode="map" type="button">MAP</button>
+          <button class="btn btn--sm" data-mode="satellite" type="button">SAT</button>
+          <button class="btn btn--sm" data-mode="terrain" type="button">TERR</button>
+          <button class="btn btn--sm" data-mode="heatmap" type="button">HEAT</button>
+          <button class="btn btn--sm" data-mode="prediction" type="button">PRED</button>
+          <button class="btn btn--sm" data-mode="radar" type="button">RADAR</button>
+        </div>
+        <div class="filters" id="map-filters" style="border:1px solid var(--blue-mid);background:rgba(3,18,33,.94);">
+          <div class="filters__group">
+            <button class="btn btn--sm" data-filter-window="60" type="button">1H</button>
+            <button class="btn btn--sm" data-filter-window="1440" type="button">24H</button>
+            <button class="btn btn--sm btn--active" data-filter-window="" type="button">ALL</button>
+          </div>
+          <span class="filters__sep"></span>
+          <button class="btn btn--sm" data-filter-conf="85" type="button">HIGH CONF</button>
+          <button class="btn btn--sm" data-filter-source="camera" type="button">CAM ONLY</button>
+          <button class="btn btn--sm" data-filter-status="active,confirmed" type="button">ACTIVE</button>
+          <span class="filters__sep"></span>
+          <button class="btn btn--sm btn--ghost" id="filters-clear" type="button">CLEAR</button>
+        </div>
+      </div>
+
+      <div class="map__ui map__ui--tr">
+        <div class="map__readout" id="map-readout"></div>
+      </div>
+
+      <div class="map__ui map__ui--bl">
+        <div class="map__legend" aria-label="Marker legend">
+          <div class="map__legend-row"><span class="map__legend-swatch" style="background:var(--green)"></span>CONFIRMED</div>
+          <div class="map__legend-row"><span class="map__legend-swatch" style="background:var(--red)"></span>ACTIVE</div>
+          <div class="map__legend-row"><span class="map__legend-swatch" style="background:var(--orange)"></span>MEDIUM</div>
+          <div class="map__legend-row"><span class="map__legend-swatch" style="background:var(--text)"></span>UNVERIFIED</div>
+          <div class="map__legend-row"><span class="map__legend-swatch" style="background:var(--purple-bright)"></span>PREDICTED</div>
+        </div>
+      </div>
+
+      <div class="map__ui map__ui--br">
+        <button class="btn btn--sm" id="map-locate" type="button">MY LOCATION</button>
+        <button class="btn btn--sm" id="map-recenter" type="button">RECENTER</button>
+        <button class="btn btn--sm btn--danger" id="map-last" type="button">LAST SIGHTING</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------ RAIL ------------------------------ -->
+  <aside class="area-rail" id="rail" aria-label="Status, assistant and prediction">
+    <div class="rail">
+
+      <!-- CURRENT STATUS -->
+      <section class="panel panel--ticks" aria-label="Current status">
+        <header class="panel__head">
+          <h2 class="panel__title">CURRENT STATUS</h2>
+          <div class="panel__meta" id="status-meta"></div>
+        </header>
+        <div class="panel__body panel__body--tight" id="status-body"></div>
+      </section>
+
+      <!-- NED AI -->
+      <section class="panel" aria-label="NED AI assistant">
+        <header class="panel__head">
+          <h2 class="panel__title panel__title--green">NED AI</h2>
+          <div class="panel__meta">
+            <span id="ned-engine" class="badge badge--muted">…</span>
+            <button class="btn btn--sm btn--ghost" id="ned-clear" type="button">CLR</button>
+          </div>
+        </header>
+        <div class="ned">
+          <div class="ned__log" id="ned-log" role="log" aria-live="polite" aria-label="NED conversation"></div>
+          <div class="ned__suggest" id="ned-suggest"></div>
+          <form class="ned__form" id="ned-form">
+            <input class="input" id="ned-input" autocomplete="off"
+                   placeholder="ASK NED…" aria-label="Ask NED">
+            <button class="btn btn--sm btn--success" type="submit">SEND</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- PREDICTION -->
+      <section class="panel panel--ticks" aria-label="Prediction">
+        <header class="panel__head">
+          <h2 class="panel__title panel__title--purple">PREDICTED NEXT LOCATION</h2>
+          <div class="panel__meta" id="pred-meta"></div>
+        </header>
+        <div class="panel__body panel__body--tight" id="pred-body"></div>
+      </section>
+
+    </div>
+  </aside>
+
+  <!-- ------------------------------ DOCK ------------------------------ -->
+  <section class="area-dock" aria-label="Feed, local area and camera network">
+    <div class="dock">
+
+      <section class="panel" data-dock="feed" aria-label="Live activity feed">
+        <header class="panel__head">
+          <h2 class="panel__title panel__title--red">LIVE FEED</h2>
+          <div class="panel__meta">
+            <span id="feed-count">0</span>
+            <button class="btn btn--sm btn--ghost" data-view="feed" type="button">VIEW ALL</button>
+          </div>
+        </header>
+        <div class="panel__body panel__body--flush" id="feed-body"></div>
+      </section>
+
+      <section class="panel" data-dock="area" aria-label="Local area">
+        <header class="panel__head">
+          <h2 class="panel__title">LOCAL AREA</h2>
+          <div class="panel__meta" id="area-meta"></div>
+        </header>
+        <div class="panel__body panel__body--tight" id="area-body"></div>
+      </section>
+
+      <section class="panel" data-dock="cameras" aria-label="Camera network and analytics">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-tab="cameras">CAMERA NET</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="analytics">ANALYTICS</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="radar">RADAR</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="system">SYSTEM</button>
+        </div>
+        <div class="panel__body panel__body--tight" id="dock-tab-body"></div>
+      </section>
+
+    </div>
+  </section>
+
+  <!-- ----------------------------- FOOTER ----------------------------- -->
+  <footer class="footer area-footer">
+    <div class="footer__label">GLOBAL NETWORK</div>
+    <div class="ticker" id="ticker"><div class="ticker__track" id="ticker-track"></div></div>
+    <div class="footer__sys" id="footer-sys"></div>
+  </footer>
+
+  <!-- Mobile bottom bar -->
+  <nav class="mobilebar" aria-label="Mobile navigation">
+    <button class="mobilebar__btn is-active" data-sheet="" type="button">
+      <span class="mobilebar__icon" aria-hidden="true">&#9673;</span>LIVE</button>
+    <button class="mobilebar__btn" data-sheet="feed" type="button">
+      <span class="mobilebar__icon" aria-hidden="true">&#9776;</span>SIGHT</button>
+    <button class="mobilebar__btn" data-sheet="prediction" type="button">
+      <span class="mobilebar__icon" aria-hidden="true">&#9650;</span>PREDICT</button>
+    <button class="mobilebar__btn" data-sheet="ned" type="button">
+      <span class="mobilebar__icon" aria-hidden="true">&#9679;</span>NED</button>
+    <button class="mobilebar__btn" data-sheet="menu" type="button">
+      <span class="mobilebar__icon" aria-hidden="true">&#9636;</span>MENU</button>
+  </nav>
+
+</div>
+
+<!-- Mobile swipe-up sheet -->
+<div class="sheet" id="sheet" aria-hidden="true">
+  <div class="sheet__grip" id="sheet-grip"></div>
+  <div class="panel__head">
+    <h2 class="panel__title" id="sheet-title">FEED</h2>
+    <div class="panel__meta">
+      <button class="btn btn--sm btn--ghost" id="sheet-close" type="button">CLOSE</button>
+    </div>
+  </div>
+  <div class="panel__body panel__body--flush" id="sheet-body"></div>
+</div>
+
+<!-- Alert stack -->
+<div class="alerts" id="alerts" aria-live="assertive" aria-label="Alerts"></div>
+
+<!-- Full-screen overlay for detail / cameras / analytics / report -->
+<div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+  <div class="overlay__panel">
+    <header class="panel__head">
+      <h2 class="panel__title" id="overlay-title">PANEL</h2>
+      <div class="panel__meta" id="overlay-meta"></div>
+      <button class="btn btn--sm btn--danger overlay__close" id="overlay-close" type="button">CLOSE [ESC]</button>
+    </header>
+    <div class="overlay__body" id="overlay-body"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+<noscript>
+  <div style="padding:24px;font-family:monospace;color:#DDF8FF">
+    SPIDEY TRACKER requires JavaScript — the console is driven entirely by live data.
+  </div>
+</noscript>
+</body>
+</html>

@@ -1,0 +1,161 @@
+/* ============================================================================
+   SPIDEY TRACKER — DESIGN TOKENS
+   The single source of colour, type, spacing and motion. Components must not
+   hardcode hex values; every one of them resolves through a token here.
+   ========================================================================= */
+
+:root {
+  /* --- Base surfaces ---------------------------------------------------- */
+  --bg-void:        #020B18;   /* page ground, deepest layer */
+  --bg-deep:        #031221;   /* panel bodies */
+  --bg-panel:       #06172A;   /* raised panels, map chrome */
+  --bg-raised:      #08203A;   /* hover / active surfaces */
+  --bg-inset:       #010710;   /* wells, terminals, map background */
+
+  /* --- Structural blues ------------------------------------------------- */
+  --blue-deep:      #063557;
+  --blue-mid:       #075B7A;
+  --blue-line:      #0A4A6E;
+
+  /* --- Signal colours --------------------------------------------------- */
+  --cyan:           #22DDF5;   /* primary accent, borders, active state */
+  --cyan-bright:    #62F4FF;   /* emphasis, glow, selection */
+  --cyan-dim:       #1596AC;
+  --green:          #42E87A;   /* confirmed / high confidence / healthy */
+  --green-dim:      #1F8A46;
+  --red:            #FF3038;   /* active alert / recent sighting / error */
+  --red-dim:        #A81C22;
+  --orange:         #FFB52E;   /* medium confidence / warning */
+  --orange-dim:     #A8720F;
+  --purple:         #7137FF;   /* AI prediction layer */
+  --purple-bright:  #9B6BFF;
+  --purple-dim:     #3F1C94;
+
+  /* --- Text ------------------------------------------------------------- */
+  --text:           #DDF8FF;
+  --text-muted:     #6D9EAD;
+  --text-dim:       #47707E;
+  --text-invert:    #020B18;
+
+  /* --- Semantic aliases -------------------------------------------------
+     Components reference these, so re-theming a state is a one-line change. */
+  --confidence-high:   var(--green);
+  --confidence-mid:    var(--orange);
+  --confidence-low:    var(--text);
+  --confidence-active: var(--red);
+  --selected:          var(--cyan-bright);
+  --prediction:        var(--purple);
+  --demo:              var(--orange);
+
+  /* --- Borders ---------------------------------------------------------- */
+  --border:         1px solid var(--blue-line);
+  --border-bright:  1px solid var(--cyan-dim);
+  --border-accent:  1px solid var(--cyan);
+  --border-width:   1px;
+
+  /* --- Glow ------------------------------------------------------------- */
+  --glow-cyan:   0 0 0 1px rgba(34, 221, 245, .28), 0 0 12px rgba(34, 221, 245, .22);
+  --glow-red:    0 0 0 1px rgba(255, 48, 56, .32),  0 0 14px rgba(255, 48, 56, .28);
+  --glow-green:  0 0 0 1px rgba(66, 232, 122, .30), 0 0 12px rgba(66, 232, 122, .22);
+  --glow-purple: 0 0 0 1px rgba(113, 55, 255, .34), 0 0 16px rgba(113, 55, 255, .30);
+
+  /* --- Typography -------------------------------------------------------
+     Press Start 2P is the identity face but is expensive to read, so it is
+     reserved for short labels. VT323 carries dense readouts, Share Tech Mono
+     the body copy. */
+  --font-pixel:  "Press Start 2P", "Silkscreen", monospace;
+  --font-term:   "VT323", "Share Tech Mono", monospace;
+  --font-mono:   "Share Tech Mono", "VT323", ui-monospace, monospace;
+  --font-body:   "Share Tech Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Pixel type runs small; these are deliberately tiny sizes. */
+  --fs-pixel-xs: 6px;
+  --fs-pixel-sm: 7px;
+  --fs-pixel:    8px;
+  --fs-pixel-md: 10px;
+  --fs-pixel-lg: 13px;
+  --fs-pixel-xl: 17px;
+
+  --fs-term-sm:  14px;
+  --fs-term:     16px;
+  --fs-term-lg:  20px;
+  --fs-term-xl:  26px;
+  --fs-term-2xl: 34px;
+
+  --fs-body-sm:  11px;
+  --fs-body:     13px;
+
+  --ls-pixel:    .06em;
+  --ls-wide:     .18em;
+
+  /* --- Spacing (4px pixel grid) ----------------------------------------- */
+  --sp-0:  0;
+  --sp-1:  2px;
+  --sp-2:  4px;
+  --sp-3:  6px;
+  --sp-4:  8px;
+  --sp-5:  12px;
+  --sp-6:  16px;
+  --sp-7:  20px;
+  --sp-8:  24px;
+  --sp-9:  32px;
+
+  /* --- Layout ----------------------------------------------------------- */
+  --header-h:      44px;
+  --rail-w:        326px;   /* right status/AI/prediction rail */
+  --dock-h:        228px;   /* bottom feed/area/camera dock */
+  --footer-h:      30px;
+  --gap:           2px;     /* panels sit almost flush — density matters */
+
+  /* --- Motion -----------------------------------------------------------
+     Durations are tokens so the reduced-motion override can zero them all. */
+  --dur-instant: 60ms;
+  --dur-fast:    140ms;
+  --dur-normal:  260ms;
+  --dur-slow:    520ms;
+  --dur-radar:   3.6s;
+  --dur-pulse:   2.1s;
+  --ease:        cubic-bezier(.2, .8, .3, 1);
+  --ease-out:    cubic-bezier(.16, 1, .3, 1);
+  --ease-step:   steps(8, end);   /* pixel-appropriate stepped motion */
+
+  /* --- Z-index scale ---------------------------------------------------- */
+  --z-map:        1;
+  --z-map-ui:     420;
+  --z-panel:      500;
+  --z-dock:       600;
+  --z-alert:      800;
+  --z-modal:      900;
+  --z-boot:      1000;
+  --z-toast:     1100;
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion: honour the OS setting and the in-app toggle. Animation in
+   this UI signals activity, so we do not remove it entirely — we collapse it
+   to a near-instant state change that still reads as "something happened".
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 1ms;
+    --dur-fast:    1ms;
+    --dur-normal:  1ms;
+    --dur-slow:    1ms;
+    --dur-radar:   0s;
+    --dur-pulse:   0s;
+  }
+}
+
+html[data-reduced-motion="1"] {
+  --dur-instant: 1ms;
+  --dur-fast:    1ms;
+  --dur-normal:  1ms;
+  --dur-slow:    1ms;
+  --dur-radar:   0s;
+  --dur-pulse:   0s;
+}
+
+html[data-reduced-motion="1"] * {
+  scroll-behavior: auto !important;
+  animation-iteration-count: 1 !important;
+}

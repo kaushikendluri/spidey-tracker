@@ -1,0 +1,500 @@
+/* ============================================================================
+   APP SHELL — dense command-console grid.
+   Desktop: header / (map + right rail) / dock / footer.
+   Panels sit almost flush (2px gap) because information density is the point.
+   ========================================================================= */
+
+#app {
+  display: grid;
+  grid-template-rows: var(--header-h) minmax(0, 1fr) var(--dock-h) var(--footer-h);
+  grid-template-columns: minmax(0, 1fr) var(--rail-w);
+  grid-template-areas:
+    "header header"
+    "map    rail"
+    "dock   dock"
+    "footer footer";
+  gap: var(--gap);
+  height: 100vh;
+  height: 100dvh;
+  padding: var(--gap);
+  background: var(--bg-void);
+}
+
+.area-header { grid-area: header; }
+.area-map    { grid-area: map;    position: relative; min-height: 0; }
+.area-rail   { grid-area: rail;   min-height: 0; }
+.area-dock   { grid-area: dock;   min-height: 0; }
+.area-footer { grid-area: footer; }
+
+/* ============================================================================
+   HEADER
+   ========================================================================= */
+
+.header {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-deep));
+  border: var(--border);
+  position: relative;
+  z-index: var(--z-panel);
+}
+
+.header__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-5);
+  border-right: var(--border);
+  flex: 0 0 auto;
+}
+
+.header__spider {
+  width: 20px; height: 20px;
+  flex: 0 0 auto;
+  color: var(--red);
+  filter: drop-shadow(0 0 5px rgba(255, 48, 56, .55));
+}
+
+.header__title {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-md);
+  letter-spacing: var(--ls-pixel);
+  color: var(--text);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.header__title em { color: var(--red); font-style: normal; }
+
+.header__version {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-xs);
+  color: var(--text-dim);
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.header__nav {
+  display: flex;
+  align-items: stretch;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.header__nav::-webkit-scrollbar { display: none; }
+
+.navbtn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-right: var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-xs);
+  letter-spacing: var(--ls-pixel);
+  text-transform: uppercase;
+  padding: 0 var(--sp-5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  position: relative;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.navbtn:hover { color: var(--cyan); background: rgba(8, 32, 58, .8); }
+
+.navbtn[aria-current="true"], .navbtn.is-active {
+  color: var(--cyan-bright);
+  background: rgba(8, 32, 58, .95);
+}
+.navbtn[aria-current="true"]::after, .navbtn.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
+.navbtn__count {
+  font-size: var(--fs-pixel-xs);
+  color: var(--orange);
+  border: 1px solid currentColor;
+  padding: 0 3px;
+  line-height: 1.4;
+}
+
+/* Search sits in the header and expands to fill available width. */
+.header__search {
+  flex: 1 1 200px;
+  min-width: 110px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  border-right: var(--border);
+}
+
+.header__search .input {
+  border: 0;
+  background: var(--bg-inset);
+  height: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  padding-left: var(--sp-8);
+}
+.header__search .input:focus { box-shadow: inset 0 0 0 1px var(--cyan); }
+
+.header__search-icon {
+  position: absolute;
+  left: var(--sp-4);
+  color: var(--text-dim);
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.header__status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: 0 var(--sp-5);
+  border-left: var(--border);
+  flex: 0 0 auto;
+}
+
+.header__clock {
+  font-family: var(--font-term);
+  font-size: var(--fs-term-lg);
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sysline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-xs);
+  letter-spacing: var(--ls-pixel);
+  color: var(--green);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.sysline--warn { color: var(--orange); }
+.sysline--err  { color: var(--red); }
+
+/* ============================================================================
+   RIGHT RAIL — status / NED / prediction stacked
+   ========================================================================= */
+
+.rail {
+  display: grid;
+  grid-template-rows: auto minmax(120px, 1fr) auto;
+  gap: var(--gap);
+  height: 100%;
+  min-height: 0;
+}
+
+.rail > * { min-height: 0; }
+
+/* ============================================================================
+   BOTTOM DOCK — feed / local area / cameras+analytics
+   ========================================================================= */
+
+.dock {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(200px, .85fr) minmax(280px, 1.3fr);
+  gap: var(--gap);
+  height: 100%;
+  min-height: 0;
+}
+
+.dock > * { min-height: 0; }
+
+/* ============================================================================
+   FOOTER — global network ticker + system status
+   ========================================================================= */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  background: var(--bg-deep);
+  border: var(--border);
+  padding: 0 var(--sp-5);
+  overflow: hidden;
+}
+
+.footer__label {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-xs);
+  letter-spacing: var(--ls-pixel);
+  color: var(--cyan);
+  text-transform: uppercase;
+  flex: 0 0 auto;
+  border-right: var(--border);
+  padding-right: var(--sp-5);
+  line-height: calc(var(--footer-h) - 2px);
+}
+
+.ticker {
+  flex: 1 1 auto;
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.ticker__track {
+  display: flex;
+  gap: var(--sp-8);
+  white-space: nowrap;
+  animation: ticker-scroll 48s linear infinite;
+  will-change: transform;
+}
+
+.ticker:hover .ticker__track { animation-play-state: paused; }
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.ticker__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-xs);
+  color: var(--text-muted);
+  letter-spacing: var(--ls-pixel);
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.ticker__item:hover { color: var(--cyan); }
+.ticker__item strong { color: var(--text); font-weight: normal; }
+
+.footer__sys {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: 0 0 auto;
+  border-left: var(--border);
+  padding-left: var(--sp-5);
+}
+
+/* ============================================================================
+   OVERLAY PANEL — full-screen views (cameras, analytics, report, feed)
+   Slides over the dashboard rather than replacing it, so the map keeps state.
+   ========================================================================= */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(2, 11, 24, .88);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: var(--sp-6);
+  animation: overlay-in var(--dur-fast) var(--ease-out);
+}
+
+.overlay[hidden] { display: none; }
+
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+
+.overlay__panel {
+  width: min(1180px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-deep);
+  border: 1px solid var(--cyan-dim);
+  box-shadow: var(--glow-cyan), 0 24px 80px rgba(0, 0, 0, .7);
+  animation: slide-in-up var(--dur-normal) var(--ease-out);
+  min-height: 0;
+}
+
+.overlay__body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: var(--sp-6);
+  min-height: 0;
+}
+
+.overlay__close {
+  margin-left: auto;
+}
+
+/* ============================================================================
+   MOBILE / TABLET
+   The mobile console is a different composition, not a squeezed desktop:
+   fullscreen map, floating status, bottom tab bar, swipe-up sheet.
+   ========================================================================= */
+
+.mobilebar { display: none; }
+.mobile-status { display: none; }
+
+@media (max-width: 1180px) {
+  :root { --rail-w: 280px; --dock-h: 200px; }
+  .dock { grid-template-columns: minmax(200px, 1fr) minmax(240px, 1.2fr); }
+  .dock > [data-dock="area"] { display: none; }
+}
+
+@media (max-width: 900px) {
+  /* Tablet: map on top, collapsible rail becomes a drawer, dock scrolls. */
+  :root { --dock-h: 190px; }
+
+  #app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--header-h) minmax(0, 1fr) var(--dock-h) var(--footer-h);
+    grid-template-areas:
+      "header"
+      "map"
+      "dock"
+      "footer";
+  }
+
+  .area-rail {
+    position: fixed;
+    top: calc(var(--header-h) + var(--gap) * 2);
+    right: var(--gap);
+    bottom: calc(var(--dock-h) + var(--footer-h) + var(--gap) * 3);
+    width: min(330px, 86vw);
+    z-index: var(--z-dock);
+    transform: translateX(calc(100% + var(--sp-6)));
+    transition: transform var(--dur-normal) var(--ease-out);
+    box-shadow: -8px 0 32px rgba(0, 0, 0, .6);
+  }
+
+  .area-rail.is-open { transform: translateX(0); }
+
+  .dock { grid-template-columns: minmax(220px, 1fr) minmax(240px, 1fr); }
+  .header__search { flex-basis: 130px; }
+}
+
+@media (max-width: 720px) {
+  /* Phone: the map IS the app. Everything else floats or slides. */
+  :root { --header-h: 40px; }
+
+  html, body { overscroll-behavior: none; }
+
+  #app {
+    grid-template-rows: var(--header-h) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header"
+      "map"
+      "mobilebar";
+    padding: 0;
+    gap: 0;
+  }
+
+  .area-dock, .area-footer { display: none; }
+
+  .header__nav, .header__search, .header__clock { display: none; }
+  .header__brand { padding: 0 var(--sp-4); border-right: 0; }
+  .header__status { padding: 0 var(--sp-4); gap: var(--sp-3); }
+
+  .area-map { border: 0; }
+
+  /* Floating current-status capsule over the map. */
+  .mobile-status {
+    display: block;
+    position: absolute;
+    top: var(--sp-4);
+    left: var(--sp-4);
+    right: var(--sp-4);
+    z-index: var(--z-map-ui);
+    background: rgba(3, 18, 33, .93);
+    border: 1px solid var(--cyan-dim);
+    box-shadow: var(--glow-cyan);
+    padding: var(--sp-3) var(--sp-4);
+  }
+
+  /* Bottom tab bar: LIVE / SIGHTINGS / PREDICT / AI / MENU */
+  .mobilebar {
+    grid-area: mobilebar;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: var(--bg-panel);
+    border-top: 1px solid var(--blue-mid);
+    z-index: var(--z-dock);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .mobilebar__btn {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    border-right: var(--border);
+    color: var(--text-dim);
+    font-family: var(--font-pixel);
+    font-size: var(--fs-pixel-xs);
+    letter-spacing: var(--ls-pixel);
+    padding: var(--sp-4) var(--sp-1);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    /* Comfortable touch target despite the tiny type. */
+    min-height: 48px;
+    text-transform: uppercase;
+  }
+  .mobilebar__btn:last-child { border-right: 0; }
+  .mobilebar__btn.is-active { color: var(--cyan-bright); background: var(--bg-raised); }
+  .mobilebar__icon { font-size: 13px; line-height: 1; }
+
+  /* Swipe-up sheet holding feed / prediction / NED on phones. */
+  .sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 76vh;
+    z-index: var(--z-alert);
+    background: var(--bg-deep);
+    border-top: 1px solid var(--cyan-dim);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .7);
+    transform: translateY(100%);
+    transition: transform var(--dur-normal) var(--ease-out);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .sheet.is-open { transform: translateY(0); }
+
+  .sheet__grip {
+    width: 40px; height: 3px;
+    background: var(--blue-mid);
+    margin: var(--sp-3) auto;
+    flex: 0 0 auto;
+  }
+
+  .area-rail {
+    top: calc(var(--header-h) + var(--sp-2));
+    bottom: 76px;
+    right: var(--sp-2);
+    width: min(320px, 92vw);
+  }
+
+  .overlay { padding: 0; }
+  .overlay__panel { border: 0; max-height: 100%; }
+  .overlay__body { padding: var(--sp-4); }
+}
+
+/* Sheet is desktop-hidden; only the phone layout uses it. */
+@media (min-width: 721px) { .sheet { display: none; } }
+
+/* Landscape phones: reclaim vertical space. */
+@media (max-height: 460px) and (max-width: 900px) {
+  :root { --header-h: 34px; }
+  .mobile-status { display: none; }
+}
