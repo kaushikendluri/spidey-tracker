@@ -20,6 +20,35 @@ import {
 // CURRENT STATUS
 // ---------------------------------------------------------------------------
 
+const HIST_BARS = 14;
+
+/** Ascending bars, lit in proportion to the confidence figure beside them. */
+function confidenceHistogram(confidence, toneClass) {
+  const lit = Math.round((Math.max(0, Math.min(100, confidence)) / 100) * HIST_BARS);
+  const bars = [];
+  for (let i = 0; i < HIST_BARS; i += 1) {
+    bars.push(el('span.conf-hist__bar', {
+      class: i < lit ? 'is-lit' : '',
+      style: { height: `${28 + (i / (HIST_BARS - 1)) * 72}%` },
+    }));
+  }
+  return el('div.conf-hist', { class: toneClass, 'aria-hidden': 'true' }, bars);
+}
+
+/** Vitals trace. Only sweeps while the subject is active — a still line means
+ *  the network has nothing live, which is information rather than decoration. */
+function vitalsTrace(isLive, toneClass) {
+  const points = isLive
+    ? '0,11 8,11 11,4 14,18 17,11 26,11 30,7 33,15 36,11 48,11 52,3 55,19 58,11 70,11'
+    : '0,11 70,11';
+  return el('div', {
+    class: `ekg ${isLive ? 'ekg--live' : ''} ${toneClass}`.trim(),
+    'aria-hidden': 'true',
+    html: `<svg viewBox="0 0 70 22" preserveAspectRatio="none" width="100%" height="100%">`
+        + `<polyline points="${points}"/></svg>`,
+  });
+}
+
 export function renderStatus() {
   const body = document.getElementById('status-body');
   const meta = document.getElementById('status-meta');
@@ -56,24 +85,36 @@ export function renderStatus() {
 
   const tone = confidenceTone(latest.confidence, latest.status);
 
+  const live = latest.status === 'active' || latest.status === 'confirmed';
+
   mount(body, [
-    el('div', { style: { marginBottom: 'var(--sp-4)' } }, [
-      el('div.px-xs.dim', { text: 'LAST SIGHTING' }),
-      el('div.term-xl.t-cyan', { text: agoFromTs(latest.ts) }),
-      el('div.px-sm', {
-        style: { color: 'var(--text)', marginTop: 'var(--sp-2)' },
-        text: latest.area,
-      }),
+    el('div.status__top', { style: { marginBottom: 'var(--sp-4)' } }, [
+      el('div', {}, [
+        el('div.px-xs.dim', { text: 'LAST SIGHTING' }),
+        el('div.term-xl.t-cyan', { text: agoFromTs(latest.ts) }),
+        el('div.px-sm', {
+          style: { color: 'var(--text)', marginTop: 'var(--sp-2)' },
+          text: latest.area,
+        }),
+      ]),
+      el('div.status__portrait', { role: 'img', 'aria-label': 'Subject silhouette' }),
+    ]),
+
+    el('div', {
+      style: { display: 'flex', alignItems: 'flex-end', gap: 'var(--sp-5)',
+               marginBottom: 'var(--sp-3)' },
+    }, [
+      el('div', {}, [
+        el('div.px-xs.dim', { text: 'CONFIDENCE' }),
+        el('div.term-2xl', { class: TONE_CLASS[tone], text: `${Math.round(latest.confidence)}%` }),
+      ]),
+      confidenceHistogram(latest.confidence, TONE_CLASS[tone]),
     ]),
 
     el('div', {
       style: { display: 'flex', alignItems: 'flex-end', gap: 'var(--sp-5)',
                marginBottom: 'var(--sp-4)' },
     }, [
-      el('div', {}, [
-        el('div.px-xs.dim', { text: 'CONFIDENCE' }),
-        el('div.term-2xl', { class: TONE_CLASS[tone], text: `${Math.round(latest.confidence)}%` }),
-      ]),
       el('div', { style: { flex: '1 1 auto' } }, [
         el('div.px-xs.dim', { text: 'STATUS' }),
         el('div.px-sm', {
@@ -81,6 +122,7 @@ export function renderStatus() {
           text: STATUS_LABEL[latest.status] || latest.status.toUpperCase(),
         }),
       ]),
+      vitalsTrace(live, TONE_CLASS[tone]),
       latest.is_demo ? demoBadge() : null,
     ]),
 
@@ -104,7 +146,9 @@ export function feedItem(sighting, { animate = false } = {}) {
   const thumb = el('div.feed__thumb', {}, [
     sighting.image_url
       ? el('img', { src: sighting.image_url, alt: '', loading: 'lazy' })
-      : el('div.feed__thumb-glyph', { text: sighting.source === 'camera' ? 'CAM' : 'RPT' }),
+      : el('div.feed__thumb-glyph', { class: TONE_CLASS[tone] }, [
+          el('span.feed__thumb-tag', { text: sighting.source === 'camera' ? 'CAM' : 'RPT' }),
+        ]),
   ]);
 
   return el('button.feed__item', {

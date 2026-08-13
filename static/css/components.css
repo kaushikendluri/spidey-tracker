@@ -128,6 +128,12 @@
   .netbar__text { font-size: var(--fs-pixel-xs); }
 }
 
+/* Phones: the bottom nav and the floating status capsule already carry the
+   network state, and the strip only collides with the map controls here. */
+@media (max-width: 720px) {
+  .netbar { display: none; }
+}
+
 /* Leaflet overrides: strip the default light chrome entirely. */
 .leaflet-container {
   background: #0B1E52 !important;
@@ -1389,3 +1395,113 @@
   padding: var(--sp-2) 0;
 }
 .egg b { font-weight: normal; }
+
+/* ============================================================================
+   STATUS PANEL — portrait, confidence histogram, vitals trace
+   ========================================================================= */
+
+.status__top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-5);
+}
+.status__top > div:first-child { flex: 1 1 auto; min-width: 0; }
+
+.status__portrait {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  background: var(--spidey-face) center / 84% no-repeat,
+              radial-gradient(circle at 50% 42%, #0C3457, #061B31 70%);
+  background-color: #08243E;
+  border: 2px solid var(--frame-c);
+  border-radius: 50%;
+  box-shadow: inset 0 0 10px rgba(2, 11, 24, .8), 0 0 12px rgba(34, 221, 245, .22);
+  image-rendering: pixelated;
+}
+
+/* Ascending bar histogram. Bars below the confidence value light up, so the
+   graphic is a reading of state rather than decoration. */
+.conf-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 26px;
+  flex: 1 1 auto;
+}
+.conf-hist__bar {
+  flex: 1 1 0;
+  background: var(--blue-deep);
+  min-height: 3px;
+  transition: background var(--dur-normal) var(--ease);
+}
+.conf-hist__bar.is-lit { background: currentColor; box-shadow: 0 0 6px currentColor; }
+
+/* Vitals trace — animates only while the subject is active. */
+.ekg {
+  width: 100%;
+  height: 22px;
+  display: block;
+  overflow: hidden;
+}
+.ekg polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.ekg--live polyline {
+  stroke-dasharray: 190;
+  animation: ekg-sweep 2.4s linear infinite;
+}
+@keyframes ekg-sweep {
+  from { stroke-dashoffset: 190; }
+  to   { stroke-dashoffset: -190; }
+}
+
+/* Feed thumbnails: a spider tile, not a fabricated photo. Demo records carry
+   no imagery and inventing some would misrepresent simulated data as real. */
+.feed__thumb-glyph {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, #0A2842, #061B31);
+  background-color: #072238;
+}
+.feed__thumb-glyph::before {
+  content: "";
+  width: 58%;
+  height: 58%;
+  background: currentColor;
+  -webkit-mask: var(--spider-glyph) center / contain no-repeat;
+  mask: var(--spider-glyph) center / contain no-repeat;
+  opacity: .9;
+}
+.feed__thumb-tag {
+  position: absolute;
+  bottom: 1px;
+  right: 2px;
+  font-family: var(--font-pixel);
+  font-size: 5px;
+  letter-spacing: .04em;
+  color: var(--text-dim);
+}
+
+/* NED speaks with a face. The avatar hangs off the speaker label so the
+   message layout itself is untouched. */
+.ned__msg--ned .ned__who {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.ned__msg--ned .ned__who::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  background: var(--ned-face) center / contain no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 4px rgba(113, 55, 255, .55));
+}

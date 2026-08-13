@@ -628,6 +628,7 @@ function renderDockTab() {
     case 'cameras':   panels.renderCameras(body, 8); break;
     case 'analytics': panels.renderAnalytics(body, { full: false }); break;
     case 'radar':     panels.renderRadar(body); break;
+    case 'global':    panels.renderNetwork(body); break;
     case 'system':    panels.renderSystem(body); break;
     default: break;
   }
@@ -1103,7 +1104,7 @@ function wireRendering() {
     panels.renderTicker();
     renderSystemIndicator();
     renderNetbar();
-    if (state.dockTab === 'system') renderDockTab();
+    if (state.dockTab === 'system' || state.dockTab === 'global') renderDockTab();
     if (state.view === 'network') refreshOverlay();
   });
 
