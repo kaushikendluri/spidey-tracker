@@ -1,0 +1,30 @@
+# Runtime data - the database is regenerated and reseeded on first boot
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Uploads submitted through the report form
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
