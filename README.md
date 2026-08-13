@@ -20,14 +20,29 @@ A dense, single-screen operations console for tracking reported Spider-Man sight
 
 ---
 
-## Status
+## The console
 
-| Layer | State |
-|---|---|
-| Database, schema, indexes, seeding | ✅ Complete |
-| Sighting pipeline, analysis, prediction, NED, simulator | ✅ Complete |
-| REST API + SSE stream | ✅ Complete |
-| Pixel design system and dashboard UI | 🚧 In progress |
+```
+┌─────────────────────────────────────────────────────────┬─────────────┐
+│ 🕷 SPIDEY TRACKER   NAV   SEARCH        CITY  CLOCK  ●  │             │
+├─────────────────────────────────────────────────────────┤ STATUS      │
+│                                                         │             │
+│                    LIVE CITY MAP                        │ NED AI      │
+│      🟢   🔴        🕷    ····· PREDICTED PATH ·····▶    │             │
+│           🟠   ⬜         ◇ PREDICTED                    │ PREDICTION  │
+├──────────────┬──────────────┬───────────────────────────┴─────────────┤
+│ LIVE FEED    │ LOCAL AREA   │ CAMERA NET │ ANALYTICS │ RADAR │ SYSTEM │
+├──────────────┴──────────────┴─────────────────────────────────────────┤
+│ GLOBAL NETWORK ticker                        STREAM ● DEMO ● SYSTEMS  │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+Six map modes (MAP / SATELLITE / TERRAIN / HEATMAP / PREDICTION / RADAR), a
+boot sequence that runs the real initialisation checks, keyboard shortcuts
+(`1-6` views, `m s t h p d` map modes, `/` search, `n` NED, `Esc` close), and
+distinct tablet and phone compositions — the phone build is a fullscreen map
+with a floating status capsule, bottom tab bar and swipe-up sheet, not a
+squeezed desktop.
 
 ---
 
@@ -77,7 +92,29 @@ app/
 │   ├── ned.py           Claude engine + local intent engine, shared tools
 │   └── simulator.py     the demo network
 └── api/                 one blueprint per resource
+
+static/
+├── css/
+│   ├── tokens.css       every colour, size, spacing and duration
+│   ├── pixel.css        panels, buttons, bars, tabs, terminal primitives
+│   ├── layout.css       console grid + tablet/phone compositions
+│   └── components.css   map chrome, markers, radar, feed, charts, cameras
+└── js/
+    ├── core/            store, api client, SSE client, formatting, sound
+    ├── components/      map, panels, ned, dossier, alerts
+    └── main.js          boot, wiring, navigation, search, filters, actions
 ```
+
+### State flow
+
+```
+SSE event ─► store.set() ─► rAF-coalesced notify ─► only the panels
+                                                    watching that key
+```
+
+Components hold no domain data of their own. A single event that touches
+sightings, prediction and analytics re-renders each affected panel exactly
+once per frame, and any panel that does not watch those keys does no work.
 
 ### The sighting pipeline
 
@@ -141,6 +178,29 @@ python3 run.py
 ```
 
 NED switches to the Claude API with tool calling over the same tools the local engine uses, so both answer from live data. If the API is unreachable it degrades to the local engine and says so rather than failing silently.
+
+---
+
+## What "dynamic" means here
+
+No figure in the interface is a constant. Concretely:
+
+- Change city and the map, feed, status, prediction, cameras, analytics and
+  radar all re-derive from that city's rows.
+- Post a sighting to `/api/sightings` from anywhere and every open tab updates
+  within a frame — marker, feed row, counters, prediction, alert — with no
+  polling and no refresh.
+- Toggle a filter and the map, feed, counters and local-area ranking all
+  narrow together, because they share one filter predicate.
+- Kill the server and the header reports `NETWORK OFFLINE`, because the
+  indicator reflects the actual `EventSource` state.
+- Ask NED "where is he heading?" and the reply is generated from the current
+  prediction, then it switches the map to prediction mode itself.
+
+Verified by driving the real UI in headless Chrome: boot, all six map modes,
+all four dock tabs, all six overlay views, marker and feed selection, the
+dossier, search, filters, NED round-trip, the report form with a real image
+upload, live SSE mutation of the DOM, and tablet/phone layouts.
 
 ---
 

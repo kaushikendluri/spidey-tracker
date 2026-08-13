@@ -55,9 +55,30 @@ let programmaticMove = false;
 // Setup
 // ---------------------------------------------------------------------------
 
+/** True once a map exists. Callers use this to degrade rather than crash. */
+export function isAvailable() {
+  return Boolean(map);
+}
+
 export function initMap(containerId, handlers = {}) {
   onSelect = handlers.onSelect || (() => {});
   onMove = handlers.onMove || (() => {});
+
+  // Leaflet is a CDN dependency. If it did not load, every other panel is
+  // still perfectly usable, so report the failure in place and let the rest of
+  // the console run rather than taking the whole app down.
+  if (!window.L) {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML =
+        '<div class="empty" style="height:100%">' +
+        '<div>MAP LIBRARY UNAVAILABLE</div>' +
+        '<div>LEAFLET COULD NOT BE LOADED FROM THE CDN</div>' +
+        '<div>FEED, PREDICTION, CAMERAS AND ANALYTICS STILL LIVE</div>' +
+        '</div>';
+    }
+    return null;
+  }
 
   map = L.map(containerId, {
     zoomControl: false,
@@ -158,6 +179,7 @@ function prefersReducedMotion() {
 
 export function setMode(mode) {
   if (!map) return;
+  if (!BASE_LAYERS[mode] && !['heatmap', 'prediction', 'radar'].includes(mode)) return;
   // HEATMAP / PREDICTION / RADAR are overlays on top of the dark base map;
   // MAP / SATELLITE / TERRAIN swap the base tiles.
   if (BASE_LAYERS[mode]) setBaseLayer(mode);

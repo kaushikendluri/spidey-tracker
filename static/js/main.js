@@ -1157,13 +1157,26 @@ async function start() {
   await runBoot();
 
   // Map must be created after the shell is visible or Leaflet mis-measures it.
+  // A map failure must not stop the rest of the console from coming up.
   const city = activeCity();
-  gmap.initMap('map-canvas', {
-    onSelect: (id) => selectSighting(id),
-    center: city ? [city.latitude, city.longitude] : undefined,
-    zoom: city ? city.default_zoom : undefined,
-  });
-  gmap.invalidate();
+  try {
+    gmap.initMap('map-canvas', {
+      onSelect: (id) => selectSighting(id),
+      center: city ? [city.latitude, city.longitude] : undefined,
+      zoom: city ? city.default_zoom : undefined,
+    });
+    gmap.invalidate();
+  } catch (err) {
+    console.error('[startup] map unavailable', err);
+  }
+
+  if (!gmap.isAvailable()) {
+    alerts.push({
+      title: 'MAP UNAVAILABLE',
+      body: 'Leaflet could not be loaded. Every other panel is still live.',
+      severity: 'warning',
+    });
+  }
 
   await Promise.all([loadSightings(), loadAnalytics(), loadNetwork(), loadSystem()]);
 
