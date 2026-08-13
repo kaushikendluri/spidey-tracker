@@ -10,11 +10,123 @@
   position: absolute;
   inset: 0;
   background: var(--bg-inset);
-  border: var(--border);
+  border: var(--frame-w) solid var(--frame-c);
+  border-radius: var(--frame-r);
   overflow: hidden;
 }
 
 #map-canvas { position: absolute; inset: 0; z-index: var(--z-map); }
+
+/* ---------------------------------------------------------------------------
+   TITLE PLAQUE — the reference hangs the wordmark on a moulded plate centred
+   over the map rather than in a header bar.
+   ------------------------------------------------------------------------ */
+.plaque {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-map-ui);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: var(--sp-4) var(--sp-7);
+  background: linear-gradient(180deg, #0A2C4C, #051B31);
+  border: 3px solid var(--frame-c-lit);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 2px rgba(2, 11, 24, .6),
+    0 0 18px rgba(34, 221, 245, .3),
+    0 3px 0 rgba(2, 11, 24, .6);
+  pointer-events: none;
+}
+
+.plaque__text {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-lg);
+  letter-spacing: var(--ls-pixel);
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(221, 248, 255, .35);
+  white-space: nowrap;
+}
+.plaque__text em { color: var(--red); font-style: normal; }
+
+.plaque__spider {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  background: var(--red);
+  -webkit-mask: var(--spider-glyph) center / contain no-repeat;
+  mask: var(--spider-glyph) center / contain no-repeat;
+  filter: drop-shadow(0 0 5px rgba(255, 48, 56, .6));
+}
+
+/* ---------------------------------------------------------------------------
+   NETWORK TICKER — the lit strip across the foot of the map.
+   ------------------------------------------------------------------------ */
+.netbar {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: var(--z-map-ui);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  max-width: calc(100% - 32px);
+  padding: var(--sp-3) var(--sp-6);
+  background: linear-gradient(180deg, #072742, #04162738);
+  background-color: rgba(4, 22, 39, .94);
+  border: 3px solid var(--frame-c);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px rgba(2, 11, 24, .5), 0 0 16px rgba(34, 221, 245, .18);
+}
+
+.netbar__dot {
+  width: 8px; height: 8px;
+  flex: 0 0 auto;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: dot-pulse var(--dur-pulse) var(--ease-step) infinite;
+}
+.netbar__dot.is-off { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+
+.netbar__text {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel);
+  letter-spacing: var(--ls-pixel);
+  color: var(--cyan-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.netbar__sound {
+  appearance: none;
+  cursor: pointer;
+  flex: 0 0 auto;
+  padding: 3px var(--sp-4);
+  background: var(--green-dim);
+  border: 2px solid var(--green);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-xs);
+  letter-spacing: var(--ls-pixel);
+  transition: background var(--dur-fast) var(--ease);
+}
+.netbar__sound:hover { background: var(--green); color: var(--text-invert); }
+.netbar__sound[aria-pressed="false"] {
+  background: transparent;
+  border-color: var(--text-dim);
+  color: var(--text-dim);
+}
+
+@media (max-width: 900px) {
+  .plaque { display: none; }
+  .netbar { bottom: 4px; padding: var(--sp-2) var(--sp-4); gap: var(--sp-3); }
+  .netbar__text { font-size: var(--fs-pixel-xs); }
+}
 
 /* Leaflet overrides: strip the default light chrome entirely. */
 .leaflet-container {
@@ -179,6 +291,37 @@
 .mk__cross::before { left: 50%; top: -3px; bottom: -3px; width: 2px; transform: translateX(-50%); }
 .mk__cross::after  { top: 50%; left: -3px; right: -3px; height: 2px; transform: translateY(-50%); }
 
+/* Sighting markers are chunky pixel tiles carrying a spider glyph, matching
+   the reference's game-inventory read. Cameras and predictions keep the small
+   .mk__core dot — only sightings get the tile. */
+.mk--tile { width: 26px; height: 26px; }
+
+.mk__tile {
+  width: 22px;
+  height: 22px;
+  position: relative;
+  z-index: 3;
+  background: currentColor;
+  border-radius: 5px;
+  box-shadow:
+    inset 0 0 0 2px rgba(2, 11, 24, .45),
+    0 0 0 2px var(--bg-void),
+    0 0 12px currentColor;
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.mk__tile::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: var(--bg-void);
+  -webkit-mask: var(--spider-glyph) center / contain no-repeat;
+  mask: var(--spider-glyph) center / contain no-repeat;
+}
+
+.mk--tile.mk--selected .mk__tile { transform: scale(1.18); }
+.mk--tile.mk--expired .mk__tile { opacity: .5; box-shadow: 0 0 0 2px var(--bg-void); }
+
 .mk__ring {
   position: absolute;
   inset: -4px;
@@ -186,6 +329,10 @@
   opacity: .5;
   z-index: 1;
 }
+
+/* The tile already fills the icon box, so its ring sits outside the bezel. */
+.mk--tile .mk__ring { inset: -3px; opacity: .35; border-radius: 7px; }
+.mk--tile .mk__ping { inset: -3px; }
 
 /* Radar ping emitted when a marker first appears. */
 .mk__ping {

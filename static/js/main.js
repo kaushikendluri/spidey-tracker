@@ -900,6 +900,27 @@ function renderSystemIndicator() {
   if (dot) dot.style.color = color;
 }
 
+function renderNetbar() {
+  const dot = document.getElementById('netbar-dot');
+  const text = document.getElementById('netbar-text');
+  const btn = document.getElementById('netbar-sound');
+  if (!text) return;
+
+  const live = state.streamState === 'open';
+  const cutoff = (Date.now() / 1000) - 86400;
+  const today = state.sightings.filter((s) => s.ts >= cutoff).length;
+
+  text.textContent = live
+    ? `LIVE NETWORK ACTIVE · ${today} SIGHTING${today === 1 ? '' : 'S'} TODAY`
+    : 'NETWORK OFFLINE · RECONNECTING';
+  text.style.color = live ? 'var(--cyan-bright)' : 'var(--red)';
+  if (dot) dot.classList.toggle('is-off', !live);
+  if (btn) {
+    btn.setAttribute('aria-pressed', String(Boolean(state.prefs.sound)));
+    btn.textContent = state.prefs.sound ? 'SOUND ON' : 'SOUND OFF';
+  }
+}
+
 function startClock() {
   const node = document.getElementById('clock');
   const tick = () => { if (node) node.textContent = clockTime(); };
@@ -1005,7 +1026,15 @@ function wireCustomEvents() {
     savePrefs();
     if (state.prefs.sound) sound.play('ping');
     renderDockTab();
+    renderNetbar();
   });
+
+  const netbarSound = document.getElementById('netbar-sound');
+  if (netbarSound) {
+    netbarSound.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('spidey:toggle-sound'));
+    });
+  }
 
   window.addEventListener('spidey:toggle-motion', () => {
     patch('prefs', { reducedMotion: !state.prefs.reducedMotion });
@@ -1050,6 +1079,7 @@ function wireRendering() {
     panels.renderArea();
     gmap.render();
     renderMobileStatus();
+    renderNetbar();
     if (state.dockTab === 'radar') renderDockTab();
   });
 
@@ -1072,6 +1102,7 @@ function wireRendering() {
   watch(['network', 'systemStatus', 'streamState', 'demoMode'], () => {
     panels.renderTicker();
     renderSystemIndicator();
+    renderNetbar();
     if (state.dockTab === 'system') renderDockTab();
     if (state.view === 'network') refreshOverlay();
   });
@@ -1190,6 +1221,7 @@ async function start() {
   panels.renderPrediction();
   panels.renderTicker();
   renderSystemIndicator();
+  renderNetbar();
   renderMobileStatus();
   gmap.render();
 

@@ -102,6 +102,21 @@
       <!-- Mobile-only floating status capsule -->
       <div class="mobile-status" id="mobile-status"></div>
 
+      <!-- Title plaque, centred over the map as in the reference -->
+      <div class="plaque" aria-hidden="true">
+        <span class="plaque__spider"></span>
+        <span class="plaque__text">SPIDEY <em>TRACKER</em></span>
+        <span class="plaque__spider"></span>
+      </div>
+
+      <!-- Network ticker strip across the foot of the map -->
+      <div class="netbar">
+        <span class="netbar__dot" id="netbar-dot"></span>
+        <span class="netbar__text" id="netbar-text">NETWORK STARTING</span>
+        <button class="netbar__sound" id="netbar-sound" type="button"
+                aria-pressed="false" aria-label="Toggle sound">SOUND</button>
+      </div>
+
       <div class="map__ui map__ui--tl">
         <div class="map__modes" role="group" aria-label="Map mode">
           <button class="btn btn--sm btn--active" data-mode="map" type="button">MAP</button>

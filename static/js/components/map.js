@@ -38,7 +38,9 @@ const BASE_LAYERS = {
 };
 
 // Above this many visible sightings we cluster instead of drawing every marker.
-const CLUSTER_THRESHOLD = 60;
+// Set above a typical demo-network day so the spider tiles — the map's whole
+// visual identity — stay on screen, and clustering is reserved for real crowding.
+const CLUSTER_THRESHOLD = 140;
 const CLUSTER_GRID_PX = 54;
 const MAX_MARKERS = 320;
 
@@ -213,13 +215,13 @@ function markerIcon(sighting, isSelected, isNew) {
 
   return L.divIcon({
     className: 'mk-wrap',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
     html:
-      `<div class="${classes}">` +
+      `<div class="${classes} mk--tile">` +
         '<div class="mk__ping"></div>' +
         '<div class="mk__ring"></div>' +
-        '<div class="mk__core mk__cross"></div>' +
+        '<div class="mk__tile"></div>' +
         `<div class="mk__label">${label}</div>` +
       '</div>',
   });
