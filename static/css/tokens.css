@@ -103,7 +103,7 @@
   /* --- Layout ----------------------------------------------------------- */
   --header-h:      44px;
   --rail-w:        326px;   /* right status/AI/prediction rail */
-  --dock-h:        228px;   /* bottom feed/area/camera dock */
+  --dock-h:        206px;   /* bottom feed/area/camera dock */
   --footer-h:      30px;
   --gap:           2px;     /* panels sit almost flush — density matters */
 

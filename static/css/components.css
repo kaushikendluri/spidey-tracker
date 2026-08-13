@@ -751,6 +751,9 @@
 .cam__view {
   position: relative;
   aspect-ratio: 16 / 10;
+  /* In the short bottom dock the aspect ratio alone collapses to nothing and
+     the tile renders as a bare caption. Keep a viewport visible regardless. */
+  min-height: 64px;
   background:
     repeating-linear-gradient(180deg, rgba(2,11,24,0) 0 2px, rgba(2,11,24,.4) 2px 3px),
     linear-gradient(160deg, #071b2e, #04121f 60%, #061a2b);

@@ -304,6 +304,10 @@ body {
   width: 100%;
 }
 
+/* Consecutive bars need air, otherwise a stack of four analysis scores reads
+   as one striped block instead of four distinct measurements. */
+.bar + .bar { margin-top: var(--sp-3); }
+
 .bar__label {
   font-family: var(--font-pixel);
   font-size: var(--fs-pixel-xs);

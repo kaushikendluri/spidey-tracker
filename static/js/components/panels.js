@@ -32,6 +32,18 @@ export function renderStatus() {
     clear(meta);
     meta.appendChild(el('span', { text: city ? city.name : '—' }));
     if (state.demoMode) meta.appendChild(demoBadge());
+    // The dossier action lives in the header rather than as a full-width row
+    // below: the rail is height-constrained and this keeps the readout itself
+    // visible without scrolling.
+    if (latest) {
+      meta.appendChild(el('button.btn.btn--sm.btn--ghost', {
+        type: 'button',
+        title: `Open the full dossier for ${latest.ref}`,
+        onclick: () => window.dispatchEvent(
+          new CustomEvent('spidey:select', { detail: latest.id }),
+        ),
+      }, ['OPEN']));
+    }
   }
 
   if (!latest) {
@@ -77,17 +89,7 @@ export function renderStatus() {
     kv('EST SPEED', kmh(latest.speed_kmh)),
     kv('SOURCE', latest.camera_id
       ? `${latest.camera_id}` : (SOURCE_LABEL[latest.source] || latest.source.toUpperCase())),
-    kv('OBSERVED', shortTime(latest.ts)),
-    kv('REF', latest.ref),
-
-    el('div', { style: { marginTop: 'var(--sp-4)', display: 'flex', gap: 'var(--sp-2)' } }, [
-      el('button.btn.btn--sm.btn--block', {
-        type: 'button',
-        onclick: () => window.dispatchEvent(
-          new CustomEvent('spidey:select', { detail: latest.id }),
-        ),
-      }, ['OPEN DOSSIER']),
-    ]),
+    kv('OBSERVED', `${shortTime(latest.ts)} · ${latest.ref}`),
   ]);
 }
 

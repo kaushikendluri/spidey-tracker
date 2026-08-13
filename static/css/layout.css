@@ -189,13 +189,22 @@
    RIGHT RAIL — status / NED / prediction stacked
    ========================================================================= */
 
+/* All three rail rows are fractional rather than content-sized. With `auto`
+   the status panel took its natural height, which starved the NED log down to
+   a single visible line and pushed the prediction candidates off-screen. As
+   fractions each panel gets a guaranteed share and scrolls inside itself. */
 .rail {
   display: grid;
-  grid-template-rows: auto minmax(120px, 1fr) auto;
+  grid-template-rows: minmax(140px, .92fr) minmax(150px, 1.16fr) minmax(150px, 1fr);
   gap: var(--gap);
   height: 100%;
   min-height: 0;
 }
+
+/* The status readout is the densest panel in the rail; tighten its rows so the
+   whole dossier summary fits without scrolling at common viewport heights. */
+#status-body .kv { padding: 3px 0; }
+#status-body .kv__v { font-size: var(--fs-term-sm); }
 
 .rail > * { min-height: 0; }
 
