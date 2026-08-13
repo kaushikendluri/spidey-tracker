@@ -53,6 +53,16 @@
   --border-accent:  1px solid var(--cyan);
   --border-width:   1px;
 
+  /* --- Frames -----------------------------------------------------------
+     The reference's dominant signature: every panel is a chunky bright-cyan
+     bezel with a rounded pixel corner and a darker inner lip, so panels read
+     as moulded hardware rather than CSS boxes. */
+  --frame-c:        #1C8FC4;   /* bezel body */
+  --frame-c-lit:    #35C6EF;   /* bezel highlight edge */
+  --frame-w:        3px;
+  --frame-r:        7px;
+  --frame-lip:      #041B31;   /* inner lip between bezel and panel body */
+
   /* --- Glow ------------------------------------------------------------- */
   --glow-cyan:   0 0 0 1px rgba(34, 221, 245, .28), 0 0 12px rgba(34, 221, 245, .22);
   --glow-red:    0 0 0 1px rgba(255, 48, 56, .32),  0 0 14px rgba(255, 48, 56, .28);
@@ -105,7 +115,7 @@
   --rail-w:        326px;   /* right status/AI/prediction rail */
   --dock-h:        206px;   /* bottom feed/area/camera dock */
   --footer-h:      30px;
-  --gap:           2px;     /* panels sit almost flush — density matters */
+  --gap:           6px;     /* bezels need the void to read as separate units */
 
   /* --- Motion -----------------------------------------------------------
      Durations are tokens so the reduced-motion override can zero them all. */

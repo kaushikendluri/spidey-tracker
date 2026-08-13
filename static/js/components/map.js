@@ -14,21 +14,26 @@ import { state, set, visibleSightings, selectedSighting } from '../core/store.js
 import { el, confidenceTone, esc, agoFromTs } from '../core/format.js';
 import * as sound from '../core/sound.js';
 
+// `tint` names a CSS filter class. CARTO ships no blue basemap, so the dark
+// tiles are recoloured in the compositor to the reference's navy/blue grid.
 const BASE_LAYERS = {
   map: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxZoom: 19,
+    tint: 'basemap--blueprint',
   },
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Imagery &copy; Esri',
     maxZoom: 18,
+    tint: 'basemap--cool',
   },
   terrain: {
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: '&copy; OpenTopoMap (CC-BY-SA)',
     maxZoom: 16,
+    tint: 'basemap--cool',
   },
 };
 
@@ -129,6 +134,7 @@ function setBaseLayer(mode) {
     maxZoom: config.maxZoom,
     subdomains: 'abcd',
     crossOrigin: true,
+    className: config.tint || '',
   });
   baseLayer.addTo(map);
 }

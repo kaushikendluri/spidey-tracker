@@ -18,7 +18,7 @@
 
 /* Leaflet overrides: strip the default light chrome entirely. */
 .leaflet-container {
-  background: #04101d !important;
+  background: #0B1E52 !important;
   font-family: var(--font-mono);
   outline: none;
 }
@@ -33,7 +33,19 @@
 .leaflet-control-attribution a { color: var(--text-muted) !important; }
 .leaflet-control-zoom { display: none !important; }
 .leaflet-pane { z-index: 1; }
-.leaflet-tile-pane { filter: saturate(.72) contrast(1.06) brightness(.86); }
+
+/* Basemap recolour. CARTO's dark tiles are neutral grey; sepia gives every
+   pixel a single hue to rotate, so the rotate+saturate pair lands the whole
+   sheet on the reference's navy ground with bright blue street lines. */
+.basemap--blueprint {
+  filter: brightness(1.5) sepia(1) hue-rotate(178deg) saturate(4.2) brightness(1.05) contrast(1.12);
+}
+
+/* Imagery and terrain already carry real colour — only cool and deepen them,
+   or the same rotation would turn them into mush. */
+.basemap--cool {
+  filter: saturate(.8) contrast(1.08) brightness(.88) hue-rotate(-12deg);
+}
 
 /* Vignette + scanlines so the map reads as a screen, not a webpage. */
 .map__grade {
