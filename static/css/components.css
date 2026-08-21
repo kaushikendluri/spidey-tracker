@@ -426,6 +426,34 @@
 }
 .pred-zone { pointer-events: none; }
 
+/* Cone of uncertainty: the dashes crawl outward so the envelope reads as a
+   forward projection rather than a static shaded region. */
+.pred-cone {
+  pointer-events: none;
+  stroke-dasharray: 5 5;
+  animation: dash-march 1.6s linear infinite;
+}
+
+.cone-tag {
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  padding: 2px var(--sp-3);
+  background: rgba(2, 11, 24, .92);
+  border: 1px solid var(--purple-bright);
+  box-shadow: 0 0 10px rgba(113, 55, 255, .45);
+  font-family: var(--font-pixel);
+  font-size: var(--fs-pixel-xs);
+  letter-spacing: var(--ls-pixel);
+  color: var(--purple-bright);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.cone-tag span { color: var(--text-dim); font-size: 5px; }
+
 /* ============================================================================
    RADAR
    ========================================================================= */

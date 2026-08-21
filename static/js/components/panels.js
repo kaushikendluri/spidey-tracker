@@ -290,7 +290,25 @@ export function renderPrediction() {
   const lead = prediction.candidates[0];
   const vector = prediction.vector;
 
+  // When the projected heading leaves the mapped districts entirely, no
+  // ensemble member lands anywhere and the ranking silently falls back to the
+  // analytic model. On the map that reads as a contradiction — the cone points
+  // one way, the route another — so say what happened.
+  const unplaced = prediction.ensemble && prediction.ensemble.landed < 1;
+
   mount(body, [
+    unplaced
+      ? el('div.px-xs', {
+          style: {
+            color: 'var(--orange)', border: '1px solid var(--orange-dim)',
+            background: 'rgba(255,181,46,.08)', padding: 'var(--sp-3)',
+            marginBottom: 'var(--sp-3)', lineHeight: '1.7',
+          },
+          title: 'The simulated tracks ended outside every mapped district, so '
+               + 'the ranking below comes from the analytic model alone.',
+        }, ['CONE LEAVES MAPPED AREA — RANKING FROM MODEL ONLY'])
+      : null,
+
     el('div.pred__lead', {}, [
       el('div', {}, [
         el('div.px-xs.dim', { text: 'MOST LIKELY' }),
@@ -306,18 +324,42 @@ export function renderPrediction() {
       requestAnimationFrame(() => {
         track.firstChild.style.width = `${candidate.probability}%`;
       });
+      // Both estimators are shown, because they answer different questions:
+      // MDL = analytic (is this somewhere activity happens), SIM = ensemble
+      // (can they physically reach it in the time available).
+      const split = candidate.ensemble_probability !== null
+        && candidate.ensemble_probability !== undefined
+        ? `MDL ${Math.round(candidate.analytic_probability)}% · SIM ${Math.round(candidate.ensemble_probability)}%`
+        : `MDL ${Math.round(candidate.analytic_probability ?? candidate.probability)}%`;
+
       return el('button.pred__row', {
         type: 'button',
-        title: `${candidate.name} — ${candidate.distance_km} km away, ETA ${candidate.eta_min} min`,
+        title: `${candidate.name} — ${candidate.distance_km} km away, ETA ${candidate.eta_min} min`
+             + `\nAnalytic model: ${candidate.analytic_probability}%`
+             + (candidate.ensemble_probability !== null && candidate.ensemble_probability !== undefined
+                ? `\nEnsemble simulation: ${candidate.ensemble_probability}%` : '')
+             + (candidate.is_origin ? '\nSubject is currently in this district.' : ''),
         onclick: () => window.dispatchEvent(
           new CustomEvent('spidey:focus-point', {
             detail: { lat: candidate.latitude, lon: candidate.longitude, zoom: 14 },
           }),
         ),
       }, [
-        el('div.pred__row-name', { text: candidate.name }),
+        el('div.pred__row-name', {}, [
+          candidate.name,
+          // A district the subject has simply not left yet is a real outcome,
+          // but it is not a "next location" — say so rather than letting it
+          // read as a destination.
+          candidate.is_origin
+            ? el('span.badge.badge--muted', {
+                style: { marginLeft: '6px', fontSize: '5px' },
+                title: 'Subject is already here — this is the chance they stay',
+              }, ['HOLDING'])
+            : null,
+        ]),
         el('div.bar__value', { text: `${Math.round(candidate.probability)}%` }),
         el('div.pred__row-bar', {}, [track]),
+        el('div.px-xs.dim', { style: { gridColumn: '1 / -1' }, text: split }),
       ]);
     }),
 
@@ -342,6 +384,15 @@ export function renderPrediction() {
           kv('SPEED', kmh(vector.speed_kmh)),
           kv('COHERENCE', pct(vector.coherence * 100)),
           kv('LEGS USED', String(vector.legs)),
+          vector.heading_se !== undefined
+            ? kv('HEADING ±', `${Math.round(vector.heading_se)}°`)
+            : null,
+          prediction.cone
+            ? kv('CONE WIDTH', km(prediction.cone.rings[prediction.cone.rings.length - 1].half_width_km * 2))
+            : null,
+          prediction.ensemble
+            ? kv('SIM RUNS', `${prediction.ensemble.members} · ${Math.round(prediction.ensemble.landed)}% PLACED`)
+            : null,
         ])
       : el('div.px-xs.dim', {
           style: { marginTop: 'var(--sp-3)' },

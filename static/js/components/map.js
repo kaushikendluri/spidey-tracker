@@ -47,6 +47,13 @@ const MAX_MARKERS = 320;
 let map = null;
 let baseLayer = null;
 let panes = {};
+// The map runs preferCanvas for marker throughput, but canvas-rendered vectors
+// ignore CSS classes, so the prediction cone and route could not be animated or
+// themed. These few shapes get SVG renderers instead. One per pane: a renderer
+// draws into its own pane, so sharing a single one would collapse the
+// zone-under-route ordering.
+let zoneRenderer = null;
+let routeRenderer = null;
 let markerIndex = new Map();      // sighting id -> leaflet marker
 let clusterLayers = [];
 let cameraMarkers = new Map();
@@ -107,6 +114,9 @@ export function initMap(containerId, handlers = {}) {
   panes.heat = map.createPane('heat');       panes.heat.style.zIndex = 350;
   panes.zone = map.createPane('zone');       panes.zone.style.zIndex = 380;
   panes.route = map.createPane('route');     panes.route.style.zIndex = 400;
+
+  zoneRenderer = L.svg({ pane: 'zone' });
+  routeRenderer = L.svg({ pane: 'route' });
   panes.cameras = map.createPane('cameras'); panes.cameras.style.zIndex = 430;
   panes.markers = map.createPane('marks');   panes.markers.style.zIndex = 460;
 
@@ -195,6 +205,41 @@ export function setMode(mode) {
 
   document.getElementById('map-canvas')?.classList.toggle('is-radar', mode === 'radar');
   render();
+
+  // A forecast cone reaches several km from the last sighting, so at the
+  // city's default zoom most of it sits outside the viewport. Frame the whole
+  // projection when the operator switches to prediction.
+  if (mode === 'prediction') fitPrediction();
+}
+
+/** Frame the origin, the cone and the leading candidates together. */
+export function fitPrediction() {
+  if (!map || !map._loaded) return false;
+  const prediction = state.prediction;
+  if (!prediction) return false;
+
+  const points = [];
+  if (prediction.origin) {
+    points.push([prediction.origin.latitude, prediction.origin.longitude]);
+  }
+  for (const p of (prediction.cone && prediction.cone.polygon) || []) {
+    points.push([p.latitude, p.longitude]);
+  }
+  // Only the leading candidate joins the frame. Including the runners-up pulls
+  // the bounds across the whole city and shrinks the cone to a smudge; they are
+  // listed in the prediction panel regardless.
+  const lead = (prediction.candidates || [])[0];
+  if (lead) points.push([lead.latitude, lead.longitude]);
+  if (points.length < 2) return false;
+
+  programmaticMove = true;
+  map.fitBounds(L.latLngBounds(points), {
+    padding: [70, 70],
+    maxZoom: 15,
+    animate: !prefersReducedMotion(),
+  });
+  setTimeout(() => { programmaticMove = false; }, 900);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -363,15 +408,85 @@ function renderPrediction(prediction) {
   clearPrediction();
   if (!prediction || !prediction.candidates || !prediction.candidates.length) return;
 
-  const { origin, projection, route, candidates } = prediction;
+  const { origin, projection, route, candidates, cone, ensemble } = prediction;
 
-  // Uncertainty zone around the projected position.
-  if (projection) {
+  // --- cone of uncertainty ------------------------------------------------
+  // The envelope the Monte Carlo ensemble actually occupied, drawn instead of
+  // a circle so the widening over time is visible. Leaflet writes these onto
+  // SVG presentation attributes, which do not resolve CSS custom properties,
+  // so the palette values are inlined here.
+  if (cone && cone.polygon && cone.polygon.length > 2) {
+    const ring = cone.polygon.map((p) => [p.latitude, p.longitude]);
+
+    const band = L.polygon(ring, {
+      renderer: zoneRenderer,
+      pane: 'zone',
+      color: '#9B6BFF',
+      fillColor: '#7137FF',
+      fillOpacity: 0.2,
+      weight: 2,
+      opacity: 0.9,
+      dashArray: '5 5',
+      interactive: false,
+      className: 'pred-cone',
+    }).addTo(map);
+    predictionLayers.push(band);
+
+    // Individual member tracks, very faint — the texture that shows the cone
+    // is a real spread of simulated paths and not a drawn shape.
+    for (const track of (ensemble && ensemble.sample_tracks) || []) {
+      const line = L.polyline(track.map((p) => [p.latitude, p.longitude]), {
+        renderer: zoneRenderer,
+        pane: 'zone',
+        color: '#9B6BFF',
+        weight: 1,
+        opacity: 0.22,
+        interactive: false,
+      }).addTo(map);
+      predictionLayers.push(line);
+    }
+
+    // Time rings along the centre line: where the subject is expected to be
+    // at each step, labelled with the elapsed minutes.
+    for (const step of cone.rings || []) {
+      if (!step.half_width_km) continue;
+      const tick = L.circleMarker([step.latitude, step.longitude], {
+        renderer: routeRenderer,
+        pane: 'route',
+        radius: 2.5,
+        color: '#62F4FF',
+        fillColor: '#62F4FF',
+        fillOpacity: 0.9,
+        weight: 0,
+        interactive: false,
+      }).addTo(map);
+      predictionLayers.push(tick);
+    }
+
+    const last = (cone.rings || [])[cone.rings.length - 1];
+    if (last) {
+      const label = L.marker([last.latitude, last.longitude], {
+        pane: 'marks',
+        interactive: false,
+        icon: L.divIcon({
+          className: 'mk-wrap',
+          iconSize: [1, 1],
+          iconAnchor: [0, -6],
+          html: '<div class="cone-tag">'
+              + `T+${Math.round(last.minutes)}MIN · ±${last.half_width_km.toFixed(1)}KM`
+              + `<span>${Math.round(cone.confidence_pct)}% BAND · ${cone.members} RUNS</span>`
+              + '</div>',
+        }),
+      }).addTo(map);
+      predictionLayers.push(label);
+    }
+  } else if (projection) {
+    // No ensemble (too little movement data) — fall back to the plain radius.
     const zone = L.circle([projection.latitude, projection.longitude], {
       pane: 'zone',
       radius: Math.max(180, projection.uncertainty_km * 1000),
-      color: 'var(--purple)',
-      fillColor: 'var(--purple)',
+      color: '#7137FF',
+      fillColor: '#7137FF',
       fillOpacity: 0.09,
       weight: 1,
       dashArray: '3 5',
@@ -385,6 +500,7 @@ function renderPrediction(prediction) {
   if (route && route.length > 1) {
     const path = route.map((p) => [p.latitude, p.longitude]);
     const line = L.polyline(path, {
+      renderer: routeRenderer,
       pane: 'route',
       color: '#22DDF5',
       weight: 2,
@@ -397,6 +513,7 @@ function renderPrediction(prediction) {
 
     // Under-glow so the path reads on busy satellite imagery.
     const glow = L.polyline(path, {
+      renderer: zoneRenderer,
       pane: 'zone', color: '#7137FF', weight: 7, opacity: 0.22, interactive: false,
     }).addTo(map);
     predictionLayers.push(glow);
